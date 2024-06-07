@@ -1,3 +1,4 @@
+from django.db.models import Count
 from django.shortcuts import render
 from django.views import generic
 
@@ -15,20 +16,32 @@ def index(request):
     num_instances_available = BookInstance.objects.filter(status__exact='a').count()
     num_authors = Author.objects.count()  # Метод 'all()' применён по умолчанию.
 
-    num_books_beg = Book.objects.filter(title__icontains='бег').count()
-
     # Отрисовка HTML-шаблона index.html с данными внутри
     # переменной контекста context
     return render(
         request,
         'index.html',
-        context={'num_books': num_books, 'num_instances': num_instances, 'num_instances_available': num_instances_available, 'num_authors': num_authors, 'num_books_beg': num_books_beg}
+        context={'num_books': num_books, 'num_instances': num_instances, 'num_instances_available': num_instances_available, 'num_authors': num_authors}
     )
 
 
 class BookListView(generic.ListView):
     model = Book
 
-
 class BookDetailView(generic.DetailView):
     model = Book
+
+
+class AuthorListView(generic.ListView):
+    model = Author
+
+
+class AuthorDetailView(generic.DetailView):
+    model = Author
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        author = self.get_object()
+        books = Book.objects.filter(author=author).annotate(num_instances=Count('bookinstance'))
+        context['book_list'] = books
+        return context
